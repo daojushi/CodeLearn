@@ -1,0 +1,23 @@
+appId: com.codelearn.desktop
+productName: CodeLearn
+
+directories:
+  output: release
+
+# 渲染层依赖全部被 vite 打进 out/,打包时不需要 node_modules
+files:
+  - out
+  - package.json
+
+win:
+  target:
+    - nsis
+  artifactName: CodeLearn-Setup-${version}.exe
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: CodeLearn

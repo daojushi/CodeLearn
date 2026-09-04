@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+@import 'highlight.js/styles/github-dark.css';
+
+/* 代码块容器自带内边距/底色,覆盖主题默认值 */
+pre code.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+/* Markdown 围栏里的 <code>:继承深色底与浅色字,不做行内样式 */
+.md-body pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-zinc-50);
+  color: var(--color-zinc-900);
+  -webkit-font-smoothing: antialiased;
+  font-family:
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+}
