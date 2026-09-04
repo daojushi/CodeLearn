@@ -2,28 +2,16 @@ node_modules/
 out/
 dist/
 release/
-
-# 本地个人笔记
 NoteContent/
-
-# 本地环境配置
 *.local
 .env
 .env.*
 !.env.example
-
-# 数据库 / 本地用户数据
 *.db
 *.sqlite
 *.sqlite3
-
-# 日志
 *.log
-
-# OS
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# 内部设计文档(不上传)
 problem-centered-learning-spec-v0.1.md
