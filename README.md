@@ -22,7 +22,7 @@
 ## 开发
 
 ```bash
-npm install          # 安装依赖(首次 electron 下载慢可设 ELECTRON_MIRROR)
+npm install          # 安装依赖
 npm run dev          # 开发模式(热更新)
 npm run typecheck    # 双 tsconfig 类型检查
 npm run dist         # 打包 Windows 安装程序 → release/
@@ -30,15 +30,8 @@ npm run dist         # 打包 Windows 安装程序 → release/
 
 ## 技术栈
 
-Electron(主/预加载/渲染三进程)+ electron-vite + React + TypeScript + Tailwind CSS v4 + SQLite(Node 内置 `node:sqlite`,零原生依赖)+ react-router(Hash)+ highlight.js / react-markdown。
+Electron + electron-vite + React + TypeScript + Tailwind CSS v4 + SQLite+ react-router(Hash)+ highlight.js / react-markdown。
 
-架构要点:
 
-- 数据库只在主进程访问(`node:sqlite`),渲染进程通过类型化 `window.api`(contextBridge)走 IPC
-- `src/shared/types.ts` 同时被主/渲染引用:实体类型 + IPC 频道常量 + Api 契约
-- DB schema 用版本化迁移(`schema_migrations`);复习调度在单事务内完成(插记录 + 更新 stage/下次时间)
-- 数据目录可配置:选择存在 `%APPDATA%\CodeLearn\settings.json`(故意不放进数据目录,避免迁移后丢失)
 
-## 里程碑
 
-M0 脚手架 → M1 Capture(记录/粘贴截图/标签)→ M2 Library(搜索筛选/知识页/设置/题解编辑)→ M3 Review(复习闭环)→ M4 打磨(备份、Markdown、打包分发)
