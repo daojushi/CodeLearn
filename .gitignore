@@ -24,3 +24,6 @@ NoteContent/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# 内部设计文档(不上传)
+problem-centered-learning-spec-v0.1.md
