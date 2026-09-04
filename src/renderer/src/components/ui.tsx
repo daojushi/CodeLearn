@@ -70,19 +70,24 @@ export function StatusSelect({
   return select
 }
 
-/** 区块标题(详情页小节) */
+/** 区块标题(详情页小节);action 渲染在标题行右侧 */
 export function Section({
   title,
+  action,
   children
 }: {
   title: string
+  action?: ReactNode
   children?: ReactNode
 }): React.JSX.Element {
   return (
     <section className="mt-8">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400">
-        {title}
-      </h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+          {title}
+        </h2>
+        {action}
+      </div>
       {children}
     </section>
   )

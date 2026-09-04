@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff, X } from 'lucide-react'
+import { Eye, EyeOff, X, ZoomIn } from 'lucide-react'
 import type { ProblemDetail as ProblemDetailType, ReviewResult } from '../../../shared/types'
 import { REVIEW_LABELS } from '../lib/constants'
 import BlockImage from './BlockImage'
 import CodeBlock from './CodeBlock'
 import MarkdownText from './MarkdownText'
+import ZoomedViewer from './ZoomedViewer'
 import { btnGhost, RankBadge } from './ui'
 
 /** 四档反馈按钮配色(spec §18 How did it go?) */
@@ -31,6 +32,7 @@ export default function ReviewModal({
   const [problem, setProblem] = useState<ProblemDetailType | null>(null)
   const [reveal, setReveal] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [reader, setReader] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -76,14 +78,24 @@ export default function ReviewModal({
               先在脑子里过一遍怎么做,再点「看看当时」对照答案
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-            title="关闭"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setReader(true)}
+              className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+              title="放大阅读题目"
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+              title="关闭"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* 题目内容 + (可选)折叠的灵感/题解 */}
@@ -179,6 +191,9 @@ export default function ReviewModal({
           </p>
         </div>
       </div>
+      {reader && problem && (
+        <ZoomedViewer title={problem.title} blocks={problem.blocks} onClose={() => setReader(false)} />
+      )}
     </div>
   )
 }

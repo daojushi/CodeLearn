@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, ZoomIn } from 'lucide-react'
 import type {
   ContentBlock,
   LanguagePreset,
@@ -16,6 +16,7 @@ import KnowledgeChipsEditor from '../components/KnowledgeChipsEditor'
 import CodeBlock from '../components/CodeBlock'
 import MarkdownText from '../components/MarkdownText'
 import ReviewModal from '../components/ReviewModal'
+import ZoomedViewer from '../components/ZoomedViewer'
 import { formatDate, REVIEW_LABELS } from '../lib/constants'
 
 export default function ProblemDetail(): React.JSX.Element {
@@ -33,6 +34,7 @@ export default function ProblemDetail(): React.JSX.Element {
   const [editingSolution, setEditingSolution] = useState<Solution | null>(null)
   const [history, setHistory] = useState<Review[]>([])
   const [reviewing, setReviewing] = useState(false)
+  const [reader, setReader] = useState(false)
   const zoneRef = useRef<HTMLDivElement>(null)
 
   const reload = useCallback(async () => {
@@ -253,7 +255,19 @@ export default function ProblemDetail(): React.JSX.Element {
       </div>
 
       {/* 题目内容 */}
-      <Section title="Problem">
+      <Section
+        title="Problem"
+        action={
+          <button
+            type="button"
+            onClick={() => setReader(true)}
+            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-700"
+            title="放大阅读题目"
+          >
+            <ZoomIn size={13} /> 放大
+          </button>
+        }
+      >
         <div
           ref={zoneRef}
           onPaste={handlePaste}
@@ -463,6 +477,14 @@ export default function ProblemDetail(): React.JSX.Element {
             void reload()
             void reloadHistory()
           }}
+        />
+      )}
+
+      {reader && (
+        <ZoomedViewer
+          title={detail.title}
+          blocks={detail.blocks}
+          onClose={() => setReader(false)}
         />
       )}
     </div>
