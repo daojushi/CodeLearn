@@ -9,7 +9,10 @@ import {
   type ReviewResult,
   type SolutionDraft
 } from '../shared/types'
+import { validateReviewCurve } from '../shared/review'
 import { closeDb, getDb, initDatabase } from './db/connection'
+import { runMigrations } from './db/migrations'
+import { applyReviewCurve, getReviewCurve } from './db/curve'
 import { exportBackup, importBackup } from './backup'
 import { getDataDir, moveDataDir } from './storage'
 import {
@@ -140,6 +143,13 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.reviewsSubmit, (_e, problemId: unknown, result: unknown) =>
     submitReview(asInt(problemId, 'problem id'), result as ReviewResult)
   )
+  ipcMain.handle(IPC.reviewsCurveGet, () => getReviewCurve())
+  ipcMain.handle(IPC.reviewsCurveSet, (_e, days: unknown) => {
+    // 主进程是权威校验;渲染进程复用同一个函数只是为了实时提示
+    const { curve, error } = validateReviewCurve(days)
+    if (!curve) throw new Error(error ?? '复习曲线不合法')
+    return applyReviewCurve(curve)
+  })
 
   /* ---------- Images ---------- */
   ipcMain.handle(IPC.imagesGet, (_e, filename: unknown) =>
@@ -212,6 +222,8 @@ export function registerIpc(): void {
 /** 按某数据目录重新初始化数据库连接与图片目录 */
 function reopenDb(dir: string): void {
   initDatabase(join(dir, 'codelearn.db'))
+  // 与 backup.ts 的 reopen 同理:目标库可能是旧版本,补跑迁移再交回业务层
+  runMigrations()
   initImagesDir(join(dir, 'images'))
 }
 

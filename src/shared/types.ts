@@ -194,6 +194,8 @@ export const IPC = {
   reviewsDue: 'reviews:due',
   reviewsList: 'reviews:list',
   reviewsSubmit: 'reviews:submit',
+  reviewsCurveGet: 'reviews:curveGet',
+  reviewsCurveSet: 'reviews:curveSet',
 
   imagesGet: 'images:get',
 
@@ -249,6 +251,11 @@ export interface Api {
   reviewList(problemId: number): Promise<Review[]>
   /** 提交复习结果并自动排下一次,返回落库的 Review */
   reviewSubmit(problemId: number, result: ReviewResult): Promise<Review>
+
+  /** 当前复习曲线(全局一条,恒非空):第 1 档到最后一档各自的天数 */
+  reviewCurveGet(): Promise<number[]>
+  /** 保存曲线并立即重排存量排期,返回被重排的题目数 */
+  reviewCurveSet(days: number[]): Promise<{ rescheduled: number }>
 
   imageGet(filename: string): Promise<string>
 

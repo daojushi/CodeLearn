@@ -1,9 +1,9 @@
 import { REVIEW_RESULTS, type ProblemListItem, type Review, type ReviewResult } from '../../shared/types'
+import { nextStageFor } from '../../shared/review'
 import { getDb } from './connection'
-import { dueAtLocalMidnight, queryProblemListItems } from './problems'
-
-/** 复习间隔阶梯(spec §18):1 → 3 → 7 → 14 → 30 天,由 review_stage 索引 */
-export const STAGE_DAYS = [1, 3, 7, 14, 30]
+import { getReviewCurve } from './curve'
+import { dueAtLocalMidnight } from './schedule'
+import { queryProblemListItems } from './problems'
 
 /** Today 到期队列:已排期、已到期、且状态不是「已掌握」(已掌握的不进队列) */
 export function listDueProblems(): ProblemListItem[] {
@@ -17,7 +17,8 @@ export function listDueProblems(): ProblemListItem[] {
 /**
  * 提交一次复习(事务):
  *  插 reviews 行 + 更新 review_stage / last_reviewed_at / next_review_at / review_count。
- * 调度规则:Forgot → 退回第 1 天;Hard → 原地重复当前间隔;Solved → 下一档;Easy → 跳两档。
+ * 调度规则见 nextStageFor:忘了 → 退回第 1 档;有点难 → 原地重复;会了 → 进一档;轻松 → 跳两档。
+ * 档数由用户的复习曲线决定。
  */
 export function submitReview(problemId: number, result: ReviewResult): Review {
   if (!REVIEW_RESULTS.includes(result)) throw new Error('无效的复习结果')
@@ -27,15 +28,13 @@ export function submitReview(problemId: number, result: ReviewResult): Review {
     .get(problemId) as { stage: number } | undefined
   if (!p) throw new Error('题目不存在或已删除')
 
-  let stage = p.stage
-  if (result === 'forgot') stage = 0
-  else if (result === 'solved') stage = Math.min(stage + 1, STAGE_DAYS.length - 1)
-  else if (result === 'easy') stage = Math.min(stage + 2, STAGE_DAYS.length - 1)
-  // hard:stage 不变,同一间隔再来一次
+  const curve = getReviewCurve()
+  // 档位可能因曲线被改短而越界:clamp 后连同下一档一起写回,自愈该行
+  const stage = nextStageFor(result, p.stage, curve.length)
 
   const now = Date.now()
   // 按自然日对齐:今天复习 + N 天 → 第 N 天当天 00:00 起可再复习
-  const nextReviewAt = dueAtLocalMidnight(now, STAGE_DAYS[stage])
+  const nextReviewAt = dueAtLocalMidnight(now, curve[stage])
 
   db.exec('BEGIN')
   try {

@@ -10,6 +10,7 @@ import type {
   Solution,
   SolutionDraft
 } from '../../../shared/types'
+import { clampReviewStage } from '../../../shared/review'
 import { btnGhost, btnPrimary, inputCls, RankSelect, Section, StatusSelect } from '../components/ui'
 import BlockImage from '../components/BlockImage'
 import KnowledgeChipsEditor from '../components/KnowledgeChipsEditor'
@@ -33,6 +34,7 @@ export default function ProblemDetail(): React.JSX.Element {
   const [addingSolution, setAddingSolution] = useState(false)
   const [editingSolution, setEditingSolution] = useState<Solution | null>(null)
   const [history, setHistory] = useState<Review[]>([])
+  const [curve, setCurve] = useState<number[] | null>(null)
   const [reviewing, setReviewing] = useState(false)
   const [reader, setReader] = useState(false)
   const zoneRef = useRef<HTMLDivElement>(null)
@@ -59,6 +61,11 @@ export default function ProblemDetail(): React.JSX.Element {
     void reloadHistory().catch(console.error)
   }, [reloadHistory])
 
+  // 复习曲线:用于在「下次」旁标出当前档位(可在 Settings → 复习曲线 调整)
+  useEffect(() => {
+    window.api.reviewCurveGet().then(setCurve).catch(console.error)
+  }, [])
+
   if (loading) return <div className="p-10 text-sm text-zinc-400">加载中…</div>
   if (!detail) {
     return (
@@ -67,6 +74,13 @@ export default function ProblemDetail(): React.JSX.Element {
       </div>
     )
   }
+
+  // 「下次」旁的档位标注:当前在第几档、这一档多少天;曲线未加载时不显示
+  const stageText = (() => {
+    if (!curve || curve.length === 0) return null
+    const s = clampReviewStage(detail.reviewStage, curve.length)
+    return `第 ${s + 1} 档 · ${curve[s]} 天`
+  })()
 
   const checkedMistakeIds = new Set(detail.mistakes.map((m) => m.id))
 
@@ -364,7 +378,12 @@ export default function ProblemDetail(): React.JSX.Element {
                 : '还没复习过'}
             </span>
             <span className="text-zinc-300">|</span>
-            <span>下次 {detail.nextReviewAt ? formatDate(detail.nextReviewAt) : '—'}</span>
+            <span>
+              下次 {detail.nextReviewAt ? formatDate(detail.nextReviewAt) : '—'}
+              {detail.nextReviewAt && stageText && (
+                <span className="text-zinc-400"> · {stageText}</span>
+              )}
+            </span>
             <span className="text-zinc-300">|</span>
             <span>已复习 {detail.reviewCount} 次</span>
             <button
@@ -387,7 +406,7 @@ export default function ProblemDetail(): React.JSX.Element {
             </ol>
           ) : (
             <p className="mt-2 text-xs text-zinc-400">
-              复习后会在这里留下记录:忘了 → 1 天后;有点难 → 间隔不变;会了 → 间隔进一档;轻松 → 跳两档
+              复习后会在这里留下记录,并按你的复习曲线安排下一次(可在 Settings → 复习曲线 调整)
             </p>
           )}
         </div>
@@ -528,7 +547,6 @@ function MistakePicker({
               onChange={() => onToggle(p)}
             />
             {p.name}
-            {p.isBuiltIn ? '' : ' · 自定义'}
           </label>
         ))}
       </div>
@@ -545,6 +563,9 @@ function MistakePicker({
                 try {
                   const preset = await window.api.mistakePresetAdd(custom)
                   setCustom('')
+                  setPresets((current) =>
+                    current.some((item) => item.id === preset.id) ? current : [...current, preset]
+                  )
                   await window.api.problemAddMistake(problemId, preset.id)
                   await onChanged()
                 } catch (err) {
@@ -638,7 +659,9 @@ function SolutionForm({
             e.preventDefault()
             void (async () => {
               const l = await window.api.languagePresetAdd(newLang)
-              setLanguages((prev) => [...prev, l])
+              setLanguages((current) =>
+                current.some((item) => item.id === l.id) ? current : [...current, l]
+              )
               setLanguageId(l.id)
               setNewLang('')
             })().catch(console.error)

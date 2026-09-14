@@ -107,6 +107,15 @@ const MIGRATIONS: string[] = [
              END
            ) || ' 00:00:00', 'utc') * 1000
    WHERE status != 'mastered' AND next_review_at IS NOT NULL;
+  `,
+  // v3:复习曲线改为用户可配置(原先硬编码 1→3→7→14→30)。
+  // 空表 = 默认曲线,因此这一步不改动任何存量排期,升级后行为与升级前一致。
+  // CHECK 由 SQLite 强制,主进程即使有 bug 也写不进非法曲线。
+  `
+  CREATE TABLE IF NOT EXISTS review_curve_stages (
+    stage INTEGER PRIMARY KEY CHECK (stage >= 0),
+    days  INTEGER NOT NULL CHECK (days >= 1)
+  );
   `
 ]
 

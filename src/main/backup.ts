@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { app, dialog, type BrowserWindow } from 'electron'
 import { closeDb, getDb, initDatabase } from './db/connection'
+import { runMigrations } from './db/migrations'
 import { initImagesDir, listImageFiles } from './images'
 import { getDataDir } from './storage'
 
@@ -17,6 +18,9 @@ const SAFE_NAME =
 function reopen(): void {
   const dir = getDataDir()
   initDatabase(join(dir, DB_FILE))
+  // 备份里的库可能是旧版本(例如导入改动前导出的备份),补跑迁移后再交给业务层,
+  // 否则整场会话都缺新表,要重启才能恢复
+  runMigrations()
   initImagesDir(join(dir, IMAGES_DIR))
 }
 

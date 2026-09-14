@@ -1,4 +1,6 @@
 import { getDb } from './connection'
+import { getReviewCurve } from './curve'
+import { dueAtLocalMidnight } from './schedule'
 import { deleteImage, saveImage } from '../images'
 import type {
   ContentBlock,
@@ -24,18 +26,6 @@ const PROBLEM_COLUMNS = `
   created_at AS createdAt,
   updated_at AS updatedAt
 `
-
-/**
- * 到期时刻按自然日对齐:基准日期 + days 天的当天 00:00(本地时区)。
- * 例:昨晚 20:24 新建、间隔 1 天 → 次日 00:00 起即可复习,而不是精确 24 小时后的今晚 20:24。
- * 让「昨天录的题,今天一早打开就该在 Today 里」符合直觉。
- */
-export function dueAtLocalMidnight(baseMs: number, days: number): number {
-  const d = new Date(baseMs)
-  d.setDate(d.getDate() + days)
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
 
 function toProblem(row: Record<string, unknown>): Problem {
   return {
@@ -150,8 +140,9 @@ export function createProblem(draft: ProblemDraft): Problem {
   if (!title) throw new Error('标题不能为空')
 
   const now = Date.now()
-  // 新建后默认次日 00:00 起进入复习队列;已掌握的问题不排期
-  const nextReviewAt = draft.status === 'mastered' ? null : dueAtLocalMidnight(now, 1)
+  // 按曲线第 1 档排期(默认曲线下 = 次日 00:00 起进入复习队列);已掌握的问题不排期
+  const nextReviewAt =
+    draft.status === 'mastered' ? null : dueAtLocalMidnight(now, getReviewCurve()[0])
 
   const id = db
     .prepare(
@@ -216,9 +207,9 @@ export function updateProblem(id: number, patch: ProblemPatch): void {
       // 标记已掌握 → 退出复习队列
       sets.push('next_review_at = NULL')
     } else {
-      // 从已掌握改回其他状态 → 若尚未排期则重新排次日 00:00
+      // 从已掌握改回其他状态 → 若尚未排期则按曲线第 1 档重新排期
       sets.push('next_review_at = COALESCE(next_review_at, ?)')
-      values.push(dueAtLocalMidnight(now, 1))
+      values.push(dueAtLocalMidnight(now, getReviewCurve()[0]))
     }
   }
 

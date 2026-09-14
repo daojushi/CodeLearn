@@ -44,6 +44,8 @@ const api: Api = {
   reviewDue: () => ipcRenderer.invoke(IPC.reviewsDue),
   reviewList: (problemId) => ipcRenderer.invoke(IPC.reviewsList, problemId),
   reviewSubmit: (problemId, result) => ipcRenderer.invoke(IPC.reviewsSubmit, problemId, result),
+  reviewCurveGet: () => ipcRenderer.invoke(IPC.reviewsCurveGet),
+  reviewCurveSet: (days) => ipcRenderer.invoke(IPC.reviewsCurveSet, days),
 
   imageGet: (filename) => ipcRenderer.invoke(IPC.imagesGet, filename),
 

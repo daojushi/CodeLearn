@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff, X, ZoomIn } from 'lucide-react'
 import type { ProblemDetail as ProblemDetailType, ReviewResult } from '../../../shared/types'
+import { nextStageFor } from '../../../shared/review'
 import { REVIEW_LABELS } from '../lib/constants'
 import BlockImage from './BlockImage'
 import CodeBlock from './CodeBlock'
@@ -30,22 +31,35 @@ export default function ReviewModal({
   onReviewed: () => void
 }): React.JSX.Element {
   const [problem, setProblem] = useState<ProblemDetailType | null>(null)
+  const [curve, setCurve] = useState<number[] | null>(null)
   const [reveal, setReveal] = useState(false)
   const [busy, setBusy] = useState(false)
   const [reader, setReader] = useState(false)
 
   useEffect(() => {
     let alive = true
-    window.api
-      .problemGet(problemId)
-      .then((p) => {
-        if (alive) setProblem(p)
+    // 曲线用于把「四档反馈」翻译成这道题真实的下次间隔,与主进程共用 nextStageFor
+    Promise.all([window.api.problemGet(problemId), window.api.reviewCurveGet()])
+      .then(([p, c]) => {
+        if (!alive) return
+        setProblem(p)
+        setCurve(c)
       })
       .catch(console.error)
     return () => {
       alive = false
     }
   }, [problemId])
+
+  /** 该反馈排出的下次间隔;曲线/题目未就绪时为 null(退化成纯按钮文案) */
+  function outcomeText(result: ReviewResult): string | null {
+    if (!curve || !problem) return null
+    const next = nextStageFor(result, problem.reviewStage, curve.length)
+    const days = curve[next]
+    // 已在最后一档时「会了 / 轻松」进不了档,明说一句,免得以为没生效
+    const atTop = result !== 'forgot' && result !== 'hard' && next === problem.reviewStage
+    return atTop ? `已最长 · ${days} 天后` : `${days} 天后`
+  }
 
   async function submit(result: ReviewResult): Promise<void> {
     if (busy) return
@@ -174,20 +188,28 @@ export default function ReviewModal({
         <div className="border-t border-zinc-100 bg-zinc-50/50 px-6 py-4">
           <p className="mb-2 text-xs font-medium text-zinc-600">How did it go?</p>
           <div className="flex flex-wrap gap-2">
-            {(Object.keys(REVIEW_LABELS) as ReviewResult[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                disabled={busy || !problem}
-                onClick={() => void submit(r)}
-                className={`rounded-lg border bg-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-40 ${RESULT_STYLES[r]}`}
-              >
-                {REVIEW_LABELS[r]}
-              </button>
-            ))}
+            {(Object.keys(REVIEW_LABELS) as ReviewResult[]).map((r) => {
+              const outcome = outcomeText(r)
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  disabled={busy || !problem}
+                  onClick={() => void submit(r)}
+                  className={`rounded-lg border bg-white px-4 py-2 text-sm font-medium transition-colors disabled:opacity-40 ${RESULT_STYLES[r]}`}
+                >
+                  {REVIEW_LABELS[r]}
+                  {outcome && (
+                    <span className="ml-1.5 text-[11px] font-normal opacity-70">{outcome}</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
           <p className="mt-2 text-[11px] text-zinc-400">
-            忘了 → 明天再来 · 有点难 → 同样间隔再来 · 会了 → 间隔加倍 · 轻松 → 跳两档
+            {curve
+              ? '按你的复习曲线排期,可在 Settings 的「复习曲线」里调整'
+              : '忘了回到第 1 档 · 有点难重复当前档 · 会了进一档 · 轻松跳两档'}
           </p>
         </div>
       </div>
