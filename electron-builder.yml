@@ -18,6 +18,8 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
+  # 由安装器中的复选框决定，不再默认创建
+  createDesktopShortcut: false
   createStartMenuShortcut: true
   shortcutName: CodeLearn
+  include: build/installer.nsh

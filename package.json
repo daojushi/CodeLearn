@@ -1,7 +1,7 @@
 {
   "name": "codelearn",
   "productName": "CodeLearn",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "以 Problem 为核心的个人学习与复习系统",
   "private": true,
   "main": "./out/main/index.js",
